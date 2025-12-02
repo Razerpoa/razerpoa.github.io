@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>I'm Sorry</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts: Julius Sans One (Header) and Allura (Handwriting) -->
+    <link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&family=Allura&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a; 
+            font-family: 'Julius Sans One', sans-serif;
+        }
+
+        /* --- Canvas Layer --- */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* --- UI Container --- */
+        #content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            width: 100%;
+            padding: 0 20px;
+            pointer-events: none; /* Let clicks pass through to canvas where no button exists */
+        }
+
+        /* Allow pointer events on interactive elements inside the container */
+        #content > * {
+            pointer-events: auto;
+        }
+
+        /* Main Heading */
+        h1 {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: clamp(2rem, 8vw, 5rem); /* Responsive sizing */
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            text-shadow: 0 0 30px rgba(167, 139, 250, 0.6);
+            margin: 0;
+            opacity: 0;
+            animation: fadeInUp 2s ease-out forwards;
+        }
+
+        /* Handwriting Subtitle */
+        .handwriting {
+            font-family: 'Allura', cursive;
+            color: #f472b6;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin-top: 10px;
+            min-height: 40px;
+            text-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.5s forwards;
+        }
+
+        /* Cursor for typewriter effect */
+        .cursor {
+            border-right: 2px solid rgba(255,255,255,0.7);
+            animation: blink 0.75s step-end infinite;
+        }
+
+        /* Glassmorphism Button */
+        .glass-btn {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 3.5s forwards;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(167, 139, 250, 0.4);
+        }
+
+        /* --- Modal (The Letter) --- */
+        #modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        #modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .letter-card {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            padding: 40px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 20px;
+            transform: translateY(20px);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: left;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        #modal-overlay.active .letter-card {
+            transform: translateY(0);
+        }
+
+        .letter-content {
+            font-family: 'Julius Sans One', sans-serif;
+            color: #e2e8f0;
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+        
+        .letter-content p { margin-bottom: 15px; }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: color 0.3s;
+        }
+        .close-btn:hover { color: white; }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes blink { 50% { border-color: transparent; } }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="content">
+        <h1>I'm Sorry Baby</h1>
+        <!-- Typewriter text container -->
+        <div class="handwriting"><span id="type-text"></span><span class="cursor"></span></div>
+        
+        <button class="glass-btn" onclick="openModal()">Read Note</button>
+    </div>
+
+    <!-- Hidden Modal Overlay -->
+    <div id="modal-overlay">
+        <div class="letter-card">
+            <div class="close-btn" onclick="closeModal()">&times;</div>
+            <div class="letter-content">
+                <p>My Dearest,</p>
+                <p>I wanted to take a moment to sincerely apologize. I know words can't always fix everything, but I hope you can feel how truly sorry I am.</p>
+                <p>You mean the world to me, and hurting you is the last thing I ever wanted to do. Please give me the chance to make it right.</p>
+                <p style="text-align: right; margin-top: 20px; color: #f472b6; font-family: 'Allura', cursive; font-size: 1.5rem;">With all my love</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- UI Logic --- */
+        
+        // Typewriter Effect
+        const textToType = "I never meant to hurt you...";
+        const typeTextElement = document.getElementById('type-text');
+        const cursor = document.querySelector('.cursor');
+        let typeIndex = 0;
+
+        setTimeout(() => {
+            function typeWriter() {
+                if (typeIndex < textToType.length) {
+                    typeTextElement.innerHTML += textToType.charAt(typeIndex);
+                    typeIndex++;
+                    setTimeout(typeWriter, 100);
+                } else {
+                    // Stop blinking cursor after a while
+                    setTimeout(() => { cursor.style.display = 'none'; }, 2000);
+                }
+            }
+            typeWriter();
+        }, 2000); // Start typing after header loads
+
+        // Modal Logic
+        const modal = document.getElementById('modal-overlay');
+        function openModal() {
+            modal.classList.add('active');
+        }
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+        // Close on clicking outside
+        modal.addEventListener('click', (e) => {
+            if(e.target === modal) closeModal();
+        });
+
+
+        /* --- Canvas Logic --- */
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+        let shootingStars = [];
+        let mouse = { x: null, y: null };
+        let frame = 0;
+
+        const colors = [
+            {r: 167, g: 139, b: 250}, // Purple
+            {r: 244, g: 114, b: 182}, // Pink
+            {r: 56, g: 189, b: 248}   // Sky Blue
+        ];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        /* --- Classes --- */
+
+        class Lotus {
+            constructor() {
+                this.hue = 0;
+            }
+
+            draw(ctx) {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const maxSize = Math.min(width, height) * 0.35;
+                
+                // Add a gentle pulse to the size
+                const pulse = Math.sin(frame * 0.02) * 0.05 + 1; 
+                const size = maxSize * pulse;
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                // Rotate entire flower slowly
+                ctx.rotate(frame * 0.002);
+                
+                // Set blending for glowing effect
+                ctx.globalCompositeOperation = 'lighter';
+
+                const layers = 3;
+                for(let l = 0; l < layers; l++) {
+                    const petals = 8 + (l * 4);
+                    const layerSize = size * (1 - l * 0.25);
+                    const colorIndex = l % colors.length;
+                    const c = colors[colorIndex];
+                    
+                    ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, 0.06)`;
+                    ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, 0.15)`;
+                    
+                    ctx.save();
+                    // Rotate layers in alternating directions
+                    ctx.rotate((l % 2 === 0 ? 1 : -1) * frame * 0.005);
+                    
+                    for(let i = 0; i < petals; i++) {
+                        ctx.rotate((Math.PI * 2) / petals);
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.quadraticCurveTo(layerSize/2, -layerSize/3, layerSize, 0);
+                        ctx.quadraticCurveTo(layerSize/2, layerSize/3, 0, 0);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                // Core glow
+                const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.2);
+                grd.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                grd.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2;
+                this.baseSize = this.size;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.alpha = Math.random() * 0.5 + 0.1;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Mouse interaction (Repel)
+                if (mouse.x != null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx*dx + dy*dy);
+                    let maxDist = 120;
+
+                    if (distance < maxDist) {
+                        const force = (maxDist - distance) / maxDist;
+                        const angle = Math.atan2(dy, dx);
+                        const moveX = Math.cos(angle) * force * 3;
+                        const moveY = Math.sin(angle) * force * 3;
+                        this.x -= moveX;
+                        this.y -= moveY;
+                    }
+                }
+
+                // Wrap around screen
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+                
+                // Twinkle effect
+                this.size = this.baseSize + Math.sin(frame * 0.05 + this.x) * 0.5;
+            }
+
+            draw() {
+                ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, Math.max(0, this.size), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class ShootingStar {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height * 0.5; // Top half mostly
+                this.length = Math.random() * 80 + 10;
+                this.speed = Math.random() * 10 + 6;
+                this.angle = Math.PI / 4; // 45 degrees
+                this.opacity = 0;
+                this.active = false;
+                // Randomly trigger
+                this.timer = Math.random() * 500;
+            }
+
+            update() {
+                if (!this.active) {
+                    this.timer--;
+                    if (this.timer <= 0) {
+                        this.active = true;
+                        this.opacity = 1;
+                    }
+                } else {
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+                    this.opacity -= 0.02;
+
+                    if (this.opacity <= 0 || this.x > width || this.y > height) {
+                        this.active = false;
+                        this.reset();
+                    }
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - Math.cos(this.angle) * this.length, this.y - Math.sin(this.angle) * this.length);
+                ctx.stroke();
+            }
+        }
+
+        /* --- Initialization --- */
+        const lotus = new Lotus();
+        
+        // Create Particles
+        const particleCount = Math.min(width * 0.15, 100);
+        for(let i=0; i<particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        // Create Shooting Stars
+        for(let i=0; i<3; i++) {
+            shootingStars.push(new ShootingStar());
+        }
+
+        // Mouse Events
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('touchstart', e => { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; }, {passive:true});
+        window.addEventListener('touchmove', e => { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; }, {passive:true});
+        window.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
+
+
+        /* --- Animation Loop --- */
+        function animate() {
+            // Draw Background (Dark Gradient)
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, '#0f172a'); 
+            bgGradient.addColorStop(1, '#1e1b4b'); 
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            frame++;
+
+            // Draw Lotus
+            lotus.draw(ctx);
+
+            // Draw Connections (Constellations)
+            ctx.globalCompositeOperation = 'source-over';
+            particles.forEach((p1, index) => {
+                p1.update();
+                p1.draw();
+
+                // Connect nearby particles
+                for (let j = index + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const connectDist = 100;
+
+                    if (dist < connectDist) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * (1 - dist/connectDist)})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            });
+
+            // Draw Shooting Stars
+            shootingStars.forEach(s => {
+                s.update();
+                s.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+    </script>
+</body>
+</html>
