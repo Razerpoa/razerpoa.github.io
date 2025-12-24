@@ -373,28 +373,15 @@
         function loadFrames() {
             loadingMsg.innerText = 'Loading frames...';
 
-            // First try to fetch a directory listing at 'frames/'. Many static servers
-            // (Apache/nginx with autoindex) will return an HTML page which we can parse.
-            fetch('frames/')
+            // Prefer explicit frames.json that lists filenames (works on GitHub Pages)
+            fetch('frames/frames.json')
                 .then(res => {
-                    if (!res.ok) throw new Error('Failed to list frames directory');
-                    return res.text();
+                    if (!res.ok) throw new Error('frames/frames.json not found');
+                    return res.json();
                 })
-                .then(text => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, 'text/html');
-
-                    // Collect candidate href/src values from common tags
-                    let links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
-                    if (links.length === 0) links = Array.from(doc.querySelectorAll('img')).map(i => i.getAttribute('src') || '');
-
-                    const images = links
-                        .filter(h => h && h.match(/\.(jpe?g|png|webp|gif)$/i))
-                        .map(h => h.split('/').pop());
-
-                    if (images.length === 0) throw new Error('No image files found in frames directory listing');
-
-                    extractedImages = images.map(f => `frames/${f}`);
+                .then(files => {
+                    if (!Array.isArray(files) || files.length === 0) throw new Error('No frames listed in frames.json');
+                    extractedImages = files.map(f => `frames/${f}`);
                     shuffle(extractedImages);
 
                     if (typeof UNIQUE_FRAMES === 'number' && extractedImages.length > UNIQUE_FRAMES) {
@@ -404,13 +391,13 @@
                     fillGrid();
                 })
                 .catch(err => {
-                    console.error('Directory listing failed:', err.message);
-                    loadingMsg.innerText = 'Unable to list frames directory on this server.';
+                    console.error('Failed to load frames.json:', err.message);
+                    loadingMsg.innerText = 'Unable to load frames.json from server.';
                     loadingMsg.style.color = 'red';
                 });
         }
 
-        // Start by loading frames from the folder listing (or fallback to index.json)
+        // Start by loading frames from frames/frames.json
         loadFrames();
 
         // 2. BUILD ROWS AND GRID
