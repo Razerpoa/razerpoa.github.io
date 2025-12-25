@@ -22,17 +22,17 @@
         }
 
         body.dark-mode {
-            --wa-bg: #0d1418;
-            --wa-sent: #056162;
-            --wa-received: #262d31;
-            --wa-header: #1f2c34;
-            --wa-text: #e1e1e9;
-            --wa-system: #1e2a30;
-            --wa-control-bg: #1f2c34;
+            --wa-bg: #0b141a;
+            --wa-sent: #005c4b;
+            --wa-received: #202c33;
+            --wa-header: #202c33;
+            --wa-text: #e9edef;
+            --wa-system: #182229;
+            --wa-control-bg: #202c33;
             --wa-border: rgba(255, 255, 255, 0.1);
             --wa-highlight: #bfa100;
-            --wa-accent: #008f6f;
-            --glass-bg: rgba(31, 44, 52, 0.8);
+            --wa-accent: #00a884;
+            --glass-bg: rgba(32, 44, 51, 0.85);
         }
 
         body {
@@ -167,11 +167,15 @@
             display: flex;
             flex-direction: column;
             background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-color: var(--wa-bg);
+            background-blend-mode: overlay;
             scroll-behavior: smooth;
         }
 
         body.dark-mode #chat-window {
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719135-7d43f0c4-73b1-11e7-9a02-2a543666d3d3.png');
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-blend-mode: soft-light;
+            opacity: 0.9;
         }
 
         /* --- Bubbles & Bookmarks --- */
@@ -358,11 +362,12 @@
         <div id="chat-section">
             <div id="search-controls">
                 <div class="input-group">
-                    <span>🔍</span><input type="text" id="searchInput" placeholder="Search messages...">
+                    <span>🔍</span><input type="text" id="searchInput" placeholder="Search messages..."
+                        oninput="runFilter()">
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <input type="date" id="dateInput"
-                        style="width:140px; background:var(--wa-bg); border-radius:20px; padding:6px 12px;">
+                    <input type="date" id="dateInput" onchange="runFilter()"
+                        style="width:140px; background:var(--wa-bg); border-radius:20px; padding:6px 12px; color:var(--wa-text);">
                     <button onclick="toggleTimeline()" class="btn-icon" title="Timeline">🗓️</button>
                     <button onclick="toggleTheme()" class="btn-icon" title="Mode">🌓</button>
                     <button onclick="toggleSidebar()" class="btn-icon" title="Bookmarks">⭐</button>
