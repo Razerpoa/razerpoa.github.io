@@ -3,11 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WhatsApp Chat Visualizer</title>
     <style>
         :root {
-            /* Light Mode Variables */
             --wa-bg: #e5ddd5;
             --wa-sent: #dcf8c6;
             --wa-received: #ffffff;
@@ -15,12 +14,14 @@
             --wa-text: #000000;
             --wa-system: #d1ebf7;
             --wa-control-bg: #ffffff;
-            --wa-border: #ccc;
-            --wa-highlight: yellow;
+            --wa-border: rgba(0, 0, 0, 0.1);
+            --wa-highlight: #ffeb3b;
+            --wa-accent: #00a884;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-blur: blur(15px);
         }
 
         body.dark-mode {
-            /* Dark Mode Variables */
             --wa-bg: #0d1418;
             --wa-sent: #056162;
             --wa-received: #262d31;
@@ -28,14 +29,15 @@
             --wa-text: #e1e1e9;
             --wa-system: #1e2a30;
             --wa-control-bg: #1f2c34;
-            --wa-border: #333;
+            --wa-border: rgba(255, 255, 255, 0.1);
             --wa-highlight: #bfa100;
+            --wa-accent: #008f6f;
+            --glass-bg: rgba(31, 44, 52, 0.8);
         }
 
         body {
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-            background-color: var(--wa-header);
-            /* Use header color for body bg outside chat */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--wa-header);
             margin: 0;
             display: flex;
             height: 100vh;
@@ -43,335 +45,300 @@
             overflow: hidden;
         }
 
-        /* Layout Container */
         #app-container {
             display: flex;
             width: 100%;
             height: 100%;
-            max-width: 1400px;
-            /* Wider to accommodate two sidebars */
-            margin: 0 auto;
             background: var(--wa-bg);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* Sidebars */
+        #chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        /* --- Desktop Premium Sidebar (Glassmorphism) --- */
         .sidebar {
-            width: 300px;
-            background: var(--wa-control-bg);
+            width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
             display: flex;
             flex-direction: column;
             border-left: 1px solid var(--wa-border);
             border-right: 1px solid var(--wa-border);
-            transition: width 0.3s ease, opacity 0.3s ease;
-            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+            z-index: 20;
         }
 
         .sidebar.collapsed {
             width: 0;
             border: none;
             opacity: 0;
+            pointer-events: none;
+            transform: translateX(20px);
         }
 
-        /* Left Sidebar: Timeline */
         #timeline-section {
-            width: 180px;
+            width: 220px;
             border-right: 1px solid var(--wa-border);
             border-left: none;
+            transform: none;
         }
 
         #timeline-section.collapsed {
             width: 0;
             border: none;
+            transform: translateX(-20px);
         }
 
-        /* Left Column: Chat */
-        #chat-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            /* Prevent flex overflow */
-        }
-
-        /* Controls Section */
+        /* --- Header / Search --- */
         #search-controls {
             background: var(--wa-control-bg);
-            padding: 10px 15px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--wa-border);
             z-index: 10;
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
+            gap: 20px;
         }
 
         .input-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .input-group label {
-            font-size: 11px;
-            color: var(--wa-text);
-            opacity: 0.7;
-            margin-bottom: 2px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="date"] {
-            padding: 6px;
-            border: 1px solid var(--wa-border);
             background: var(--wa-bg);
-            color: var(--wa-text);
-            border-radius: 5px;
+            border-radius: 20px;
+            padding: 6px 15px;
+            display: flex;
+            align-items: center;
+            flex: 1;
+            max-width: 400px;
+            border: 1px solid transparent;
+            transition: all 0.3s;
         }
 
-        button {
-            padding: 6px 12px;
-            cursor: pointer;
-            background: #00a884;
-            color: white;
+        .input-group:focus-within {
+            border-color: var(--wa-accent);
+            background: var(--wa-control-bg);
+            box-shadow: 0 0 10px rgba(0, 168, 132, 0.1);
+        }
+
+        input {
             border: none;
-            border-radius: 5px;
-            font-size: 13px;
+            background: transparent;
+            color: var(--wa-text);
+            outline: none;
+            padding: 6px;
+            font-size: 14px;
+            width: 100%;
         }
 
-        button:hover {
-            background: #008f6f;
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            transition: background 0.2s, transform 0.1s;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Chat Window */
+        .btn-icon:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-icon:active {
+            transform: scale(0.9);
+        }
+
+        /* --- Chat Window --- */
         #chat-window {
-            flex-grow: 1;
+            flex: 1;
             overflow-y: auto;
-            background-color: var(--wa-bg);
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            padding: 20px;
+            -webkit-overflow-scrolling: touch;
+            padding: 30px;
             display: flex;
             flex-direction: column;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            scroll-behavior: smooth;
         }
 
         body.dark-mode #chat-window {
             background-image: url('https://user-images.githubusercontent.com/15075759/28719135-7d43f0c4-73b1-11e7-9a02-2a543666d3d3.png');
-            opacity: 0.9;
         }
 
-        /* Bubbles */
+        /* --- Bubbles & Bookmarks --- */
         .bubble {
-            max-width: 80%;
-            padding: 6px 10px;
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 14.2px;
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 15px;
             position: relative;
-            box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
-            word-wrap: break-word;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
             align-self: flex-start;
-            background-color: var(--wa-received);
+            background: var(--wa-received);
             color: var(--wa-text);
+            transition: background 0.2s;
         }
 
         .bubble.sent {
             align-self: flex-end;
-            background-color: var(--wa-sent);
+            background: var(--wa-sent);
+            border-top-right-radius: 4px;
         }
 
-        /* Clickable bubbles when filtered */
-        body.is-filtered .bubble {
-            cursor: pointer;
+        .bubble.received {
+            border-top-left-radius: 4px;
         }
 
-        body.is-filtered .bubble:hover {
-            filter: brightness(0.95);
+        .bubble:hover .btn-bookmark {
+            opacity: 1;
+            transform: translate(5px, -5px);
         }
 
-        .bubble:hover .add-highlight-btn {
-            display: block;
-        }
-
-        /* Add Highlight Button overlay */
-        .add-highlight-btn {
-            display: none;
+        .btn-bookmark {
             position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #ffad1f;
+            top: 0;
+            right: 0;
+            transform: translate(15px, -15px);
+            background: var(--wa-accent);
             color: white;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            text-align: center;
-            line-height: 20px;
-            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
             cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             z-index: 5;
         }
 
         .sender-name {
-            font-weight: bold;
-            font-size: 12.5px;
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 4px;
             display: block;
-            margin-bottom: 2px;
-            color: #E542A3;
         }
 
         .timestamp {
             font-size: 10px;
-            color: var(--wa-text);
-            opacity: 0.6;
-            float: right;
-            margin-top: 4px;
-            margin-left: 8px;
-        }
-
-        .media {
-            font-style: italic;
-            opacity: 0.8;
-        }
-
-        /* System Messages */
-        .system {
-            align-self: center;
-            background: var(--wa-system);
-            color: var(--wa-text);
-            padding: 5px 12px;
-            border-radius: 7px;
-            font-size: 12px;
-            margin: 10px 0;
-            text-transform: uppercase;
-            text-align: center;
-            box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.1);
-        }
-
-        .search-highlight {
-            background-color: var(--wa-highlight);
-            color: black;
-        }
-
-        /* Common Sidebar Header */
-        .sidebar-header {
-            padding: 15px;
-            background: var(--wa-header);
-            color: white;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            white-space: nowrap;
-        }
-
-        /* Highlights Sidebar Styles */
-        #highlights-list {
-            overflow-y: auto;
-            flex: 1;
-            padding: 10px;
-        }
-
-        .highlight-item {
-            background: var(--wa-bg);
-            border: 1px solid var(--wa-border);
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            color: var(--wa-text);
-            position: relative;
-        }
-
-        .highlight-item:hover {
-            opacity: 0.9;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .highlight-note {
-            font-weight: bold;
-            color: #d94f5c;
-            /* Distinct color for note */
-            margin-bottom: 4px;
-            font-size: 13px;
-        }
-
-        .highlight-preview {
-            font-size: 11px;
-            color: var(--wa-text);
-            opacity: 0.8;
-            border-left: 3px solid #ccc;
-            padding-left: 5px;
-        }
-
-        .public-badge {
-            font-size: 8px;
-            background: #00a884;
-            color: white;
-            padding: 1px 4px;
-            border-radius: 3px;
-            float: right;
-            text-transform: uppercase;
-        }
-
-        .theme-toggle {
-            cursor: pointer;
-            font-size: 20px;
-            background: none;
-            border: none;
-            padding: 0;
-        }
-
-        .load-previous-btn {
-            align-self: center;
-            margin: 10px 0;
-            background: var(--wa-control-bg);
-            color: #00a884;
-            border: 1px solid #00a884;
-            font-weight: bold;
-            width: 80%;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .load-previous-btn:hover {
-            background: #e9f5f2;
-        }
-
-        /* Timeline Styles */
-        #timeline-list {
-            overflow-y: auto;
-            flex: 1;
-            padding: 10px;
-        }
-
-        .timeline-year {
-            font-weight: bold;
-            font-size: 14px;
-            margin: 15px 0 5px 0;
-            color: #00a884;
-            border-bottom: 1px solid var(--wa-border);
-            padding-bottom: 2px;
-        }
-
-        .timeline-month {
-            font-size: 12px;
-            padding: 8px 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.2s;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .timeline-month:hover {
-            background: rgba(0, 168, 132, 0.1);
-            color: #00a884;
-        }
-
-        .timeline-count {
             opacity: 0.5;
-            font-size: 10px;
+            text-align: right;
+            margin-top: 6px;
+        }
+
+        /* --- Scrollbar --- */
+        #chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-window::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+
+        body.dark-mode #chat-window::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- Mobile Overlays --- */
+        @media (max-width: 768px) {
+            #search-controls {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px;
+            }
+
+            .input-group {
+                max-width: none;
+            }
+
+            .bubble {
+                max-width: 90%;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100% !important;
+                height: 80vh;
+                border: none;
+                border-radius: 24px 24px 0 0;
+                box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            .sidebar.collapsed {
+                transform: translateY(100%);
+                width: 100% !important;
+            }
+
+            #timeline-section {
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                left: auto !important;
+                width: 60px !important;
+                height: auto;
+                border-radius: 0;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            #timeline-section.collapsed {
+                transform: translateX(100%);
+            }
+
+            #timeline-section .sidebar-header {
+                display: none;
+            }
+
+            #timeline-list {
+                padding: 40px 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .timeline-month {
+                width: 36px;
+                height: 36px;
+                padding: 0 !important;
+                font-size: 10px;
+                border-radius: 50%;
+                background: var(--wa-accent);
+                opacity: 0.9;
+                margin-bottom: 6px;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            }
+
+            .timeline-year {
+                /* writing-mode: vertical-lr; */
+                font-size: 12px;
+                opacity: 0.4;
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -379,62 +346,45 @@
 <body>
 
     <div id="app-container">
-        <!-- Timeline Section (Left Sidebar) -->
+        <!-- Timeline Section -->
         <div id="timeline-section" class="sidebar collapsed">
-            <div class="sidebar-header">
-                <span>📅 Timeline</span>
-                <button onclick="toggleTimeline()"
-                    style="background:none; border:none; color:white; font-size:16px;">✕</button>
+            <div class="sidebar-header" style="background:transparent; color:inherit; padding:24px;">
+                <span style="font-size:20px; font-weight:800">Timeline</span>
+                <button onclick="toggleTimeline()" class="btn-icon">✕</button>
             </div>
-            <div id="timeline-list">
-                <!-- Months will be injected here -->
-            </div>
+            <div id="timeline-list" style="overflow-y:auto; padding:0 20px 20px;"></div>
         </div>
 
-        <!-- Chat Section -->
         <div id="chat-section">
             <div id="search-controls">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <div class="input-group">
-                        <label>Search:</label>
-                        <input type="text" id="searchInput" placeholder="Search...">
-                    </div>
-                    <div class="input-group">
-                        <label>Date:</label>
-                        <input type="date" id="dateInput">
-                    </div>
-                    <button onclick="resetFilters()">Reset</button>
+                <div class="input-group">
+                    <span>🔍</span><input type="text" id="searchInput" placeholder="Search messages...">
                 </div>
-
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <button onclick="toggleTimeline()" title="Toggle Timeline">📅</button>
-                    <button onclick="toggleTheme()" class="theme-toggle" title="Toggle Dark/Light Mode">🌓</button>
-                    <button onclick="toggleSidebar()" title="Toggle Highlights">⭐</button>
+                <div style="display:flex; gap:10px;">
+                    <input type="date" id="dateInput"
+                        style="width:140px; background:var(--wa-bg); border-radius:20px; padding:6px 12px;">
+                    <button onclick="toggleTimeline()" class="btn-icon" title="Timeline">🗓️</button>
+                    <button onclick="toggleTheme()" class="btn-icon" title="Mode">🌓</button>
+                    <button onclick="toggleSidebar()" class="btn-icon" title="Bookmarks">⭐</button>
                 </div>
             </div>
 
             <div id="chat-window">
-                <div style="text-align: center; padding: 20px; color: #666;">Loading chats...</div>
+                <div style="text-align:center; padding:100px; opacity:0.3">Loading conversation...</div>
             </div>
         </div>
 
-        <!-- Highlights Section (Right Sidebar) -->
+        <!-- Highlights Drawer -->
         <div id="highlights-section" class="sidebar collapsed">
-            <div class="sidebar-header">
-                <span>⭐ Highlights</span>
-                <button onclick="toggleSidebar()"
-                    style="background:none; border:none; color:white; font-size:16px;">✕</button>
+            <div class="sidebar-header" style="background:transparent; color:inherit; padding:24px;">
+                <span style="font-size:20px; font-weight:800">Bookmarks</span>
+                <button onclick="toggleSidebar()" class="btn-icon">✕</button>
             </div>
-            <div id="highlights-list">
-                <div style="text-align:center; padding: 20px; font-size: 12px; color: #888;">No highlights yet. Hover
-                    over a message to add one.</div>
-            </div>
-            <div
-                style="padding: 10px; border-top: 1px solid var(--wa-border); background: var(--wa-control-bg); display: flex; flex-direction: column; gap: 5px;">
-                <button onclick="exportHighlights()" style="width: 100%;"
-                    title="Export current highlights to JSON code">Export to JSON</button>
-                <div style="font-size: 9px; opacity: 0.6; text-align: center;">Export your local highlights to share
-                    them in highlights.json!</div>
+            <div id="highlights-list" style="overflow-y:auto; padding:0 20px 20px; flex:1"></div>
+            <div style="padding:24px; border-top:1px solid var(--wa-border)">
+                <button onclick="exportHighlights()"
+                    style="width:100%; padding:14px; border-radius:12px; background:var(--wa-accent); color:white; border:none; font-weight:700; cursor:pointer">Export
+                    to JSON</button>
             </div>
         </div>
     </div>
@@ -444,485 +394,178 @@
         let filteredIndices = [];
         let localHighlights = JSON.parse(localStorage.getItem('chatHighlights')) || [];
         let publicHighlights = [];
-        let highlights = []; // Merged list
+        let highlights = [];
         let isDarkMode = localStorage.getItem('chatTheme') === 'dark';
 
-        // Rendering State
         const CHUNK_SIZE = 100;
-        let firstDisplayedIndex = 0; // index in filteredIndices
-        let lastDisplayedIndex = 0;  // index in filteredIndices
+        let firstDisplayedIndex = 0;
+        let lastDisplayedIndex = 0;
         let isLoadingMore = false;
-        let isSparseView = false; // True if we jumped to a distant message
+        let isSparseView = false;
 
-        // Initialize Theme
         if (isDarkMode) document.body.classList.add('dark-mode');
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Fetch Chats
-            fetch('chats.txt')
-                .then(response => {
-                    if (!response.ok) throw new Error("Could not find chats.txt");
-                    return response.text();
-                })
-                .then(text => initApp(text))
-                .catch(err => {
-                    document.getElementById('chat-window').innerHTML = `<div style="text-align:center; padding:20px; color:red;">Error: ${err.message}. Please make sure chats.txt is in the same folder.</div>`;
-                });
-
-            // Fetch Public Highlights
-            fetch('highlights.json')
-                .then(response => response.ok ? response.json() : [])
-                .then(data => {
-                    publicHighlights = data.map(h => ({ ...h, isPublic: true }));
-                    mergeHighlights();
-                })
-                .catch(e => {
-                    console.log("No public highlights found or error loading them.", e);
-                    mergeHighlights();
-                });
-
+            fetch('chats.txt').then(r => r.ok ? r.text() : null).then(t => t && initApp(t));
+            fetch('highlights.json').then(r => r.ok ? r.json() : []).then(data => {
+                publicHighlights = data.map(h => ({ ...h, isPublic: true }));
+                mergeHighlights();
+            });
             setupInfiniteScroll();
         });
 
-        // Debounce Wrapper
-        function debounce(func, wait) {
-            let timeout;
-            return function (...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        }
-
-        const debouncedFilter = debounce(runFilter, 300);
-        document.getElementById('searchInput').addEventListener('input', debouncedFilter);
-        document.getElementById('dateInput').addEventListener('change', runFilter);
-
-        function initApp(text) {
-            processChat(text);
-            buildTimeline();
-            runFilter();
-        }
+        function initApp(text) { processChat(text); buildTimeline(); runFilter(); }
 
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
-            const current = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-            localStorage.setItem('chatTheme', current);
+            localStorage.setItem('chatTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
         }
 
         function toggleSidebar() {
-            const sidebar = document.getElementById('highlights-section');
-            sidebar.classList.toggle('collapsed');
+            const s = document.getElementById('highlights-section');
+            s.classList.toggle('collapsed');
+            if (window.innerWidth <= 768 && !s.classList.contains('collapsed')) document.getElementById('timeline-section').classList.add('collapsed');
         }
 
         function toggleTimeline() {
-            const sidebar = document.getElementById('timeline-section');
-            sidebar.classList.toggle('collapsed');
+            const s = document.getElementById('timeline-section');
+            s.classList.toggle('collapsed');
+            if (window.innerWidth <= 768 && !s.classList.contains('collapsed')) document.getElementById('highlights-section').classList.add('collapsed');
         }
 
         function mergeHighlights() {
-            highlights = [...publicHighlights, ...localHighlights];
-            highlights.sort((a, b) => a.id - b.id);
+            highlights = [...publicHighlights, ...localHighlights].sort((a, b) => a.id - b.id);
             renderHighlights();
         }
 
         function addHighlight(msgId) {
-            const note = prompt("Enter a description for this highlight (e.g., 'Funny moment'):");
+            const note = prompt("Bookmark Title:");
             if (note) {
-                const msg = allMessages[msgId];
-                if (msg) {
-                    localHighlights.push({
-                        id: msgId,
-                        date: msg.rawDate,
-                        sender: msg.sender,
-                        preview: msg.message.substring(0, 50) + (msg.message.length > 50 ? '...' : ''),
-                        note: note
-                    });
-                    localStorage.setItem('chatHighlights', JSON.stringify(localHighlights));
-                    mergeHighlights();
-                    document.getElementById('highlights-section').classList.remove('collapsed');
-                }
+                const m = allMessages[msgId];
+                localHighlights.push({ id: msgId, date: m.rawDate, sender: m.sender, preview: m.message.substring(0, 50) + '...', note: note });
+                localStorage.setItem('chatHighlights', JSON.stringify(localHighlights));
+                mergeHighlights();
             }
         }
 
         function renderHighlights() {
             const list = document.getElementById('highlights-list');
-            list.innerHTML = '';
-
-            if (highlights.length === 0) {
-                list.innerHTML = '<div style="text-align:center; padding: 20px; font-size: 12px; opacity: 0.7;">No highlights yet. Hover over a message to add one.</div>';
-                return;
-            }
-
-            highlights.forEach((h, index) => {
-                const item = document.createElement('div');
-                item.className = 'highlight-item';
-                item.innerHTML = `
-                ${h.isPublic ? '<span class="public-badge">Public</span>' : ''}
-                <div class="highlight-note">${h.note}</div>
-                <div class="highlight-preview">${h.sender}: ${h.preview}</div>
-                <div style="font-size: 10px; text-align: right; margin-top: 4px; opacity: 0.5;">${h.date}</div>
-                <button onclick="removeHighlight(${index})" style="background: none; color: red; font-size: 10px; padding: 0; margin-top: 5px; width: 100%; text-align: left;">🗑 ${h.isPublic ? 'Hide' : 'Remove'}</button>
-            `;
-                item.onclick = (e) => {
-                    if (e.target.tagName === 'BUTTON') return;
-                    jumpToContext(h.id);
-                };
-                list.appendChild(item);
-            });
-        }
-
-        function removeHighlight(index) {
-            const item = highlights[index];
-            if (confirm(`Remove this ${item.isPublic ? 'public' : 'local'} highlight from your view?`)) {
-                if (item.isPublic) {
-                    publicHighlights = publicHighlights.filter(h => h !== item);
-                } else {
-                    localHighlights = localHighlights.filter(h => h !== item);
-                    localStorage.setItem('chatHighlights', JSON.stringify(localHighlights));
-                }
-                mergeHighlights();
-            }
-        }
-
-        function exportHighlights() {
-            const cleanHighlights = highlights.map(h => ({
-                id: h.id,
-                date: h.date,
-                sender: h.sender,
-                preview: h.preview,
-                note: h.note
-            }));
-            const json = JSON.stringify(cleanHighlights, null, 2);
-
-            navigator.clipboard.writeText(json).then(() => {
-                alert("All highlights (JSON) copied to clipboard! Paste this into highlights.json in your repo.");
-            }).catch(() => {
-                prompt("Copy the JSON below and paste into highlights.json:", json);
+            list.innerHTML = highlights.length ? '' : '<div style="opacity:0.4; text-align:center; padding:40px">Bookmarked messages appear here.</div>';
+            highlights.forEach((h, i) => {
+                const div = document.createElement('div');
+                div.style = "background:var(--wa-bg); padding:16px; border-radius:12px; margin-bottom:12px; cursor:pointer";
+                div.innerHTML = `<div style="font-weight:800; color:var(--wa-accent); margin-bottom:6px">${h.note}</div><div style="font-size:12px; opacity:0.7">${h.sender}: ${h.preview}</div>`;
+                div.onclick = () => { jumpToContext(h.id); if (window.innerWidth <= 768) toggleSidebar(); };
+                list.appendChild(div);
             });
         }
 
         function jumpToContext(msgId) {
-            const query = document.getElementById('searchInput').value;
-            const dateQuery = document.getElementById('dateInput').value;
-
-            // Clear filters if any
-            if (query || dateQuery) {
-                resetFilters();
-            }
-
-            const targetIdxInFiltered = msgId; // After reset filters, indices match allMessages
-
-            // Sparse Loading: Only load context around msgId
-            const container = document.getElementById('chat-window');
-            container.innerHTML = '';
-            isSparseView = true;
-
-            const start = Math.max(0, targetIdxInFiltered - 50);
-            const end = Math.min(allMessages.length, targetIdxInFiltered + 50);
-
-            firstDisplayedIndex = start;
-            lastDisplayedIndex = end;
-
+            if (document.getElementById('searchInput').value || document.getElementById('dateInput').value) resetFilters();
+            const win = document.getElementById('chat-window');
+            win.innerHTML = ''; isSparseView = true;
+            const start = Math.max(0, msgId - 50); const end = Math.min(allMessages.length, msgId + 50);
+            firstDisplayedIndex = start; lastDisplayedIndex = end;
             if (start > 0) {
-                addLoadPreviousButton();
+                const btn = document.createElement('button'); btn.innerText = "↑ Load More History";
+                btn.style = "margin:20px auto; padding:10px 20px; border-radius:20px; background:var(--wa-control-bg); border:1px solid var(--wa-border); cursor:pointer";
+                btn.onclick = () => {
+                    const h = win.scrollHeight; const s = Math.max(0, firstDisplayedIndex - CHUNK_SIZE);
+                    win.prepend(createFragment(s, firstDisplayedIndex)); firstDisplayedIndex = s;
+                    if (s === 0) btn.remove(); win.scrollTop = win.scrollHeight - h;
+                };
+                win.appendChild(btn);
             }
-
-            const fragment = createMessageFragment(start, end);
-            container.appendChild(fragment);
-
-            setTimeout(() => scrollToMessage(msgId), 50);
-        }
-
-        function addLoadPreviousButton() {
-            const container = document.getElementById('chat-window');
-            const btn = document.createElement('button');
-            btn.className = 'load-previous-btn';
-            btn.id = 'load-prev-trigger';
-            btn.innerText = '↑ Load Previous Messages';
-            btn.onclick = loadPrevious;
-            container.prepend(btn);
-        }
-
-        function loadPrevious() {
-            if (firstDisplayedIndex === 0) return;
-
-            const container = document.getElementById('chat-window');
-            const oldHeight = container.scrollHeight;
-
-            const start = Math.max(0, firstDisplayedIndex - CHUNK_SIZE);
-            const end = firstDisplayedIndex;
-
-            const fragment = createMessageFragment(start, end);
-
-            // Remove button, prepend fragment, re-add button if needed
-            const btn = document.getElementById('load-prev-trigger');
-            if (btn) btn.remove();
-
-            container.prepend(fragment);
-
-            firstDisplayedIndex = start;
-            if (start > 0) {
-                addLoadPreviousButton();
-            }
-
-            // Restore scroll position
-            container.scrollTop = container.scrollHeight - oldHeight;
-        }
-
-        function scrollToMessage(msgId) {
-            const el = document.getElementById(`msg-${msgId}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('search-highlight');
-                setTimeout(() => el.classList.remove('search-highlight'), 2000);
-            }
+            win.appendChild(createFragment(start, end));
+            setTimeout(() => {
+                const el = document.getElementById(`msg-${msgId}`);
+                if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'var(--wa-highlight)'; setTimeout(() => el.style.background = '', 2000); }
+            }, 100);
         }
 
         function runFilter() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const dateQuery = document.getElementById('dateInput').value;
-            const container = document.getElementById('chat-window');
-
-            container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Applying filters...</div>';
-
-            firstDisplayedIndex = 0;
-            lastDisplayedIndex = 0;
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const d = document.getElementById('dateInput').value;
             filteredIndices = [];
-            isSparseView = false;
-
-            let targetIso = null;
-            if (dateQuery) targetIso = dateQuery;
-
-            const isFiltered = !!(query || dateQuery);
-            if (isFiltered) {
-                document.body.classList.add('is-filtered');
-            } else {
-                document.body.classList.remove('is-filtered');
-            }
-
-            const total = allMessages.length;
-            for (let i = 0; i < total; i++) {
-                const msg = allMessages[i];
-                if (targetIso && msg.isoDate !== targetIso) continue;
-                if (query && !msg.lcContent.includes(query) && !msg.lcSender.includes(query)) continue;
-                filteredIndices.push(i);
-            }
-
-            container.innerHTML = '';
-            if (filteredIndices.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No messages found.</div>';
-                return;
-            }
-
-            loadNextChunk();
+            allMessages.forEach((m, i) => {
+                if ((!d || m.isoDate === d) && (!q || m.lcContent.includes(q) || m.lcSender.includes(q))) filteredIndices.push(i);
+            });
+            document.body.classList.toggle('is-filtered', !!(q || d));
+            const win = document.getElementById('chat-window'); win.innerHTML = '';
+            lastDisplayedIndex = 0; loadNext();
         }
 
-        function loadNextChunk() {
-            if (isLoadingMore) return;
+        function loadNext() {
+            if (isLoadingMore || lastDisplayedIndex >= filteredIndices.length) return;
             isLoadingMore = true;
-
-            const container = document.getElementById('chat-window');
-            const start = lastDisplayedIndex;
-            const end = Math.min(start + CHUNK_SIZE, filteredIndices.length);
-
-            const fragment = createMessageFragment(start, end);
-            container.appendChild(fragment);
-
-            lastDisplayedIndex = end;
-            isLoadingMore = false;
-
-            if (end < filteredIndices.length && container.scrollHeight <= container.clientHeight) {
-                loadNextChunk();
-            }
+            const e = Math.min(lastDisplayedIndex + CHUNK_SIZE, filteredIndices.length);
+            document.getElementById('chat-window').appendChild(createFragment(lastDisplayedIndex, e));
+            lastDisplayedIndex = e; isLoadingMore = false;
         }
 
-        function createMessageFragment(startIndex, endIndex) {
-            const fragment = document.createDocumentFragment();
-            const query = document.getElementById('searchInput').value.toLowerCase();
-
-            let lastDateShown = "";
-            if (startIndex > 0) {
-                const prevMsg = allMessages[filteredIndices[startIndex - 1]];
-                lastDateShown = prevMsg.rawDate;
+        function createFragment(s, e) {
+            const f = document.createDocumentFragment();
+            for (let i = s; i < e; i++) {
+                const idx = filteredIndices[i]; const m = allMessages[idx];
+                const d = document.createElement('div');
+                d.className = `bubble ${m.isFathan ? 'sent' : 'received'}`; d.id = `msg-${idx}`;
+                d.innerHTML = `
+                    <div class="btn-bookmark" onclick="addHighlight(${idx}); event.stopPropagation();">⭐</div>
+                    <span class="sender-name" style="color:${m.color}">${m.sender}</span>
+                    <div>${m.message}</div>
+                    <span class="timestamp">${m.time}</span>
+                `;
+                d.onclick = () => jumpToContext(idx);
+                f.appendChild(d);
             }
-
-            for (let i = startIndex; i < endIndex; i++) {
-                const index = filteredIndices[i];
-                const msg = allMessages[index];
-
-                if (msg.rawDate !== lastDateShown) {
-                    lastDateShown = msg.rawDate;
-                    const dateDiv = document.createElement('div');
-                    dateDiv.className = 'system';
-                    dateDiv.innerText = lastDateShown;
-                    fragment.appendChild(dateDiv);
-                }
-
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `bubble ${msg.isFathan ? 'sent' : 'received'}`;
-                msgDiv.id = `msg-${index}`;
-
-                let contentHtml = msg.message;
-                if (query) {
-                    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                    contentHtml = contentHtml.replace(regex, '<span class="search-highlight">$1</span>');
-                }
-
-                if (msg.isMedia) {
-                    contentHtml = '<span class="media">📷 Photo/Media</span> ' + contentHtml.replace('<Media omitted>', '').replace('(file attached)', '');
-                }
-
-                msgDiv.innerHTML = `
-                <div class="add-highlight-btn" onclick="addHighlight(${index}); event.stopPropagation();" title="Bookmark this">+</div>
-                <span class="sender-name" style="color: ${msg.color}">${msg.sender}</span>
-                <div>${contentHtml}</div>
-                <span class="timestamp">${msg.time}</span>
-            `;
-                msgDiv.onclick = () => jumpToContext(index);
-                fragment.appendChild(msgDiv);
-            }
-            return fragment;
+            return f;
         }
 
         function buildTimeline() {
-            const timelineList = document.getElementById('timeline-list');
-            timelineList.innerHTML = '';
-
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            const grouping = {}; // { "2024": { "05": { index: 123, count: 50 } } }
-
-            allMessages.forEach((msg, idx) => {
-                if (!msg.isoDate) return;
-                const [year, month] = msg.isoDate.split('-');
-                if (!grouping[year]) grouping[year] = {};
-                if (!grouping[year][month]) {
-                    grouping[year][month] = { index: idx, count: 0 };
-                }
-                grouping[year][month].count++;
-            });
-
-            // Sort years descending
-            const years = Object.keys(grouping).sort((a, b) => b - a);
-
-            years.forEach(year => {
-                const yearDiv = document.createElement('div');
-                yearDiv.className = 'timeline-year';
-                yearDiv.innerText = year;
-                timelineList.appendChild(yearDiv);
-
-                const sortedMonths = Object.keys(grouping[year]).sort((a, b) => b - a);
-                sortedMonths.forEach(m => {
-                    const mData = grouping[year][m];
-                    const monthDiv = document.createElement('div');
-                    monthDiv.className = 'timeline-month';
-                    monthDiv.innerHTML = `
-                        <span>${months[parseInt(m) - 1]}</span>
-                        <span class="timeline-count">${mData.count} msgs</span>
-                    `;
-                    monthDiv.onclick = () => jumpToContext(mData.index);
-                    timelineList.appendChild(monthDiv);
+            const l = document.getElementById('timeline-list'); const g = {};
+            const mo = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            allMessages.forEach((m, i) => { if (m.isoDate) { const [y, mm] = m.isoDate.split('-'); if (!g[y]) g[y] = {}; if (!g[y][mm]) g[y][mm] = i; } });
+            Object.keys(g).sort((a, b) => b - a).forEach(y => {
+                const div = document.createElement('div'); div.className = 'timeline-year'; div.innerText = y; l.appendChild(div);
+                Object.keys(g[y]).sort((a, b) => b - a).forEach(m => {
+                    const md = document.createElement('div'); md.style = "padding:10px; cursor:pointer; border-radius:10px; font-weight:600; font-size:14px; margin-bottom:4px";
+                    md.className = 'timeline-month'; md.innerText = mo[parseInt(m) - 1];
+                    md.onclick = () => { jumpToContext(g[y][m]); if (window.innerWidth <= 768) toggleTimeline(); };
+                    l.appendChild(md);
                 });
             });
         }
 
         function setupInfiniteScroll() {
-            const container = document.getElementById('chat-window');
-            container.addEventListener('scroll', () => {
-                // Bottom check
-                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 500) {
-                    if (lastDisplayedIndex < filteredIndices.length) {
-                        loadNextChunk();
-                    }
-                }
-            });
+            document.getElementById('chat-window').onscroll = () => {
+                const w = document.getElementById('chat-window');
+                if (w.scrollTop + w.clientHeight >= w.scrollHeight - 600) loadNext();
+            };
         }
 
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('dateInput').value = '';
-            runFilter();
-        }
+        function resetFilters() { document.getElementById('searchInput').value = ''; document.getElementById('dateInput').value = ''; runFilter(); }
 
         function processChat(text) {
             allMessages = [];
-            const lines = text.split('\n');
-
-            const messageRegex = /^(\d{1,2}\/\d{1,2}\/\d{2,4}),\s+(\d{1,2}:\d{2}[\s\u202F]?[APM]{2})\s+-\s+(.*?):\s+(.*)$/;
-            const systemRegex = /^(\d{1,2}\/\d{1,2}\/\d{2,4}),\s+(\d{1,2}:\d{2}[\s\u202F]?[APM]{2})\s+-\s+(.*)$/;
-
-            lines.forEach(line => {
-                line = line.trim();
-                if (!line) return;
-
-                const match = line.match(messageRegex);
-                if (match) {
-                    const [_, rawDate, time, sender, message] = match;
-
-                    const parts = rawDate.split('/');
-                    let isoDate = "";
-                    if (parts.length === 3) {
-                        const m = parts[0].padStart(2, '0');
-                        const d = parts[1].padStart(2, '0');
-                        let y = parts[2];
-                        if (y.length === 2) y = '20' + y;
-                        isoDate = `${y}-${m}-${d}`;
-                    }
-
-                    allMessages.push({
-                        type: 'message',
-                        rawDate: rawDate,
-                        isoDate: isoDate,
-                        time: time.trim(),
-                        sender: sender,
-                        lcSender: sender.toLowerCase(),
-                        isFathan: sender.toLowerCase().includes('fathan'),
-                        message: message,
-                        lcContent: message.toLowerCase(),
-                        isMedia: message.includes('<Media omitted>') || message.includes('(file attached)'),
-                        color: getColorForString(sender)
-                    });
-                } else {
-                    const sysMatch = line.match(systemRegex);
-                    if (sysMatch) {
-                        const [_, rawDate, time, content] = sysMatch;
-                        allMessages.push({
-                            type: 'system',
-                            rawDate: rawDate,
-                            message: content,
-                            lcSender: 'system',
-                            lcContent: content.toLowerCase(),
-                            isoDate: (() => {
-                                const parts = rawDate.split('/');
-                                if (parts.length === 3) {
-                                    const m = parts[0].padStart(2, '0');
-                                    const d = parts[1].padStart(2, '0');
-                                    let y = parts[2];
-                                    if (y.length === 2) y = '20' + y;
-                                    return `${y}-${m}-${d}`;
-                                }
-                                return null;
-                            })()
-                        });
-                    } else if (allMessages.length > 0) {
-                        const lastMsg = allMessages[allMessages.length - 1];
-                        lastMsg.message += '\n' + line;
-                        lastMsg.lcContent += '\n' + line.toLowerCase();
-                    }
+            text.split('\n').forEach(line => {
+                const m = line.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}), (\d{1,2}:\d{2}.*) - (.*?): (.*)$/);
+                if (m) {
+                    const [_, rd, t, s, msg] = m; const p = rd.split('/');
+                    const iso = `${p[2].length == 2 ? '20' + p[2] : p[2]}-${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}`;
+                    allMessages.push({ rawDate: rd, isoDate: iso, time: t.trim(), sender: s, isFathan: s.toLowerCase().includes('fathan'), message: msg, lcSender: s.toLowerCase(), lcContent: msg.toLowerCase(), color: getColor(s) });
                 }
             });
         }
 
-        function getColorForString(str) {
-            if (!str || str === 'System') return '#555';
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-            return '#' + "00000".substring(0, 6 - c.length) + c;
+        function getColor(s) {
+            let h = 0; for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+            return '#' + (h & 0x00FFFFFF).toString(16).padStart(6, '0');
+        }
+
+        function exportHighlights() {
+            navigator.clipboard.writeText(JSON.stringify(highlights, null, 2)).then(() => alert("JSON copied!"));
         }
     </script>
-
 </body>
 
 </html>
